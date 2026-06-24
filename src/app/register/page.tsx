@@ -140,6 +140,16 @@ function RegisterForm() {
       if (verifyError) throw verifyError
 
       if (data?.session) {
+        try {
+          await fetch('/api/auth/notify-self-registration', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${data.session.access_token}`,
+            },
+          })
+        } catch (notifyErr) {
+          console.error('Helpdesk notify failed:', notifyErr)
+        }
         await supabase.auth.signOut({ scope: 'local' })
         setSuccess(true)
       } else {

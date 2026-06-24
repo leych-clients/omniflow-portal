@@ -5,11 +5,15 @@
 
 const HELPDESK_EMAIL = 'helpdesk@omniflow.com'
 
-export type HelpdeskNotifyType = 'user_created' | 'invite_accepted'
+export type HelpdeskNotifyType = 'user_created' | 'invite_accepted' | 'self_registered'
 
 export interface HelpdeskNotifyData {
   email: string
   name?: string
+  company?: string
+  title?: string
+  phone?: string
+  adminUrl?: string
 }
 
 export async function notifyHelpdesk(
@@ -24,17 +28,31 @@ export async function notifyHelpdesk(
     return { ok: false, error: 'Email not configured' }
   }
 
-  const isUserCreated = type === 'user_created'
-  const subject = isUserCreated
-    ? `Portal: New user created – ${data.email}`
-    : `Portal: Invite accepted – ${data.email}`
+  const subject =
+    type === 'self_registered'
+      ? `Portal: New self-registration (pending approval) – ${data.email}`
+      : type === 'user_created'
+        ? `Portal: New user created – ${data.email}`
+        : `Portal: Invite accepted – ${data.email}`
 
-  const text = isUserCreated
-    ? `A new user has been added to the OMNI portal.
+  const text =
+    type === 'self_registered'
+      ? `A new user has self-registered on the OMNI portal and is pending admin approval.
+
+Email: ${data.email}
+Name: ${data.name ?? '—'}
+Company: ${data.company ?? '—'}
+Title: ${data.title ?? '—'}
+Phone: ${data.phone ?? '—'}
+
+Their account is locked until an administrator unlocks it in Admin → Users.
+${data.adminUrl ? `Review users: ${data.adminUrl}` : ''}`.trim()
+      : type === 'user_created'
+        ? `A new user has been added to the OMNI portal.
 
 Email: ${data.email}
 Name: ${data.name ?? '—'}`
-    : `A user has accepted their invite and set their password.
+        : `A user has accepted their invite and set their password.
 
 Email: ${data.email}
 Name: ${data.name ?? '—'}
