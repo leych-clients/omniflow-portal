@@ -73,10 +73,37 @@ export interface SoftwareItem {
   created_at: string
 }
 
-export const ADMIN_TABS = ['users', 'training', 'documents', 'software', 'news', 'analytics'] as const
+export interface JobOpening {
+  id: string
+  title: string
+  slug: string
+  department: string | null
+  location: string | null
+  employment_type: 'full_time' | 'part_time' | 'contract' | 'internship'
+  summary: string | null
+  description: string | null
+  apply_email: string | null
+  status: 'open' | 'closed' | 'draft'
+  posted_at: string | null
+  sort_order: number
+  created_at: string
+  updated_at?: string
+}
+
+export const ADMIN_TABS = ['users', 'training', 'documents', 'software', 'news', 'careers', 'analytics'] as const
 export type AdminTabId = (typeof ADMIN_TABS)[number]
 
 export type AdminNavTabId = 'dashboard' | AdminTabId
+
+const TAB_BLUE = {
+  nav: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
+  mobile: 'text-blue-600 dark:text-blue-400',
+  dashboard: {
+    border: 'border-l-blue-500 dark:border-l-blue-500',
+    icon: 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400',
+    pills: 'border-blue-100 bg-blue-50/40 dark:border-blue-500/30 dark:bg-blue-500/15',
+  },
+} as const
 
 /** Per-section accent colors - unified blue theme for header nav and page dashboards */
 export const ADMIN_TAB_COLORS: Record<AdminNavTabId, {
@@ -84,13 +111,29 @@ export const ADMIN_TAB_COLORS: Record<AdminNavTabId, {
   mobile: string
   dashboard: { border: string; icon: string; pills: string }
 }> = {
-  dashboard: { nav: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', mobile: 'text-blue-600 dark:text-blue-400', dashboard: { border: 'border-l-blue-500 dark:border-l-blue-500', icon: 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400', pills: 'border-blue-100 bg-blue-50/40 dark:border-blue-500/30 dark:bg-blue-500/15' } },
-  users: { nav: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', mobile: 'text-blue-600 dark:text-blue-400', dashboard: { border: 'border-l-blue-500 dark:border-l-blue-500', icon: 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400', pills: 'border-blue-100 bg-blue-50/40 dark:border-blue-500/30 dark:bg-blue-500/15' } },
-  training: { nav: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', mobile: 'text-blue-600 dark:text-blue-400', dashboard: { border: 'border-l-blue-500 dark:border-l-blue-500', icon: 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400', pills: 'border-blue-100 bg-blue-50/40 dark:border-blue-500/30 dark:bg-blue-500/15' } },
-  documents: { nav: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', mobile: 'text-blue-600 dark:text-blue-400', dashboard: { border: 'border-l-blue-500 dark:border-l-blue-500', icon: 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400', pills: 'border-blue-100 bg-blue-50/40 dark:border-blue-500/30 dark:bg-blue-500/15' } },
-  software: { nav: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', mobile: 'text-blue-600 dark:text-blue-400', dashboard: { border: 'border-l-blue-500 dark:border-l-blue-500', icon: 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400', pills: 'border-blue-100 bg-blue-50/40 dark:border-blue-500/30 dark:bg-blue-500/15' } },
-  news: { nav: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', mobile: 'text-blue-600 dark:text-blue-400', dashboard: { border: 'border-l-blue-500 dark:border-l-blue-500', icon: 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400', pills: 'border-blue-100 bg-blue-50/40 dark:border-blue-500/30 dark:bg-blue-500/15' } },
-  analytics: { nav: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400', mobile: 'text-blue-600 dark:text-blue-400', dashboard: { border: 'border-l-blue-500 dark:border-l-blue-500', icon: 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400', pills: 'border-blue-100 bg-blue-50/40 dark:border-blue-500/30 dark:bg-blue-500/15' } },
+  dashboard: { ...TAB_BLUE },
+  users: { ...TAB_BLUE },
+  training: { ...TAB_BLUE },
+  documents: { ...TAB_BLUE },
+  software: { ...TAB_BLUE },
+  news: { ...TAB_BLUE },
+  careers: { ...TAB_BLUE },
+  analytics: { ...TAB_BLUE },
+}
+
+export function employmentTypeLabel(type: string): string {
+  switch (type) {
+    case 'full_time':
+      return 'Full-time'
+    case 'part_time':
+      return 'Part-time'
+    case 'contract':
+      return 'Contract'
+    case 'internship':
+      return 'Internship'
+    default:
+      return type
+  }
 }
 
 export function getStatusColor(status: string) {
@@ -99,6 +142,8 @@ export function getStatusColor(status: string) {
     case 'pending': return 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30'
     case 'inactive': return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30'
     case 'published': return 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30'
+    case 'open': return 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30'
+    case 'closed': return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-white/10 dark:text-zinc-400 dark:border-white/20'
     case 'draft': return 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30'
     case 'archived': return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-white/10 dark:text-zinc-400 dark:border-white/20'
     case 'in-review': return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30'

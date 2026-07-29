@@ -13,6 +13,7 @@ import {
   BookOpen,
   Package,
   Newspaper,
+  Briefcase,
   BarChart3,
   Home,
   LogOut,
@@ -31,6 +32,7 @@ const TAB_CONFIG: { id: AdminNavTabId; label: string; icon: React.ComponentType<
   { id: 'documents', label: 'Documents', icon: BookOpen },
   { id: 'software', label: 'Software', icon: Package },
   { id: 'news', label: 'News', icon: Newspaper },
+  { id: 'careers', label: 'Careers', icon: Briefcase },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ]
 
@@ -113,7 +115,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-[#0f0f0f]/95 backdrop-blur border-t border-slate-200 dark:border-white/[0.06] z-40 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
-        <div className="grid grid-cols-7 h-14">
+        <div className="grid grid-cols-4 sm:grid-cols-8 h-auto min-h-14 py-1">
           {TAB_CONFIG.map(({ id, label, icon: Icon, href }) => {
             const isActive = activeTab === id
             const colors = ADMIN_TAB_COLORS[id]

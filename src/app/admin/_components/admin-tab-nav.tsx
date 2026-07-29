@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Users, GraduationCap, BookOpen, Package, Newspaper, BarChart3 } from 'lucide-react'
+import { Users, GraduationCap, BookOpen, Package, Newspaper, Briefcase, BarChart3 } from 'lucide-react'
 import { ADMIN_TABS, type AdminTabId } from './admin-types'
 
 const TAB_CONFIG: { id: AdminTabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -12,6 +12,7 @@ const TAB_CONFIG: { id: AdminTabId; label: string; icon: React.ComponentType<{ c
   { id: 'documents', label: 'Documents', icon: BookOpen },
   { id: 'software', label: 'Software', icon: Package },
   { id: 'news', label: 'News', icon: Newspaper },
+  { id: 'careers', label: 'Careers', icon: Briefcase },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ]
 
@@ -54,7 +55,7 @@ export function AdminMobileTabNav({ counts }: { counts?: Partial<Record<AdminTab
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-white dark:bg-[#0f0f0f] border-t border-slate-200 dark:border-white/[0.06] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)] z-40 pb-[env(safe-area-inset-bottom)]">
-      <div className="grid grid-cols-6 h-14">
+      <div className="grid grid-cols-4 sm:grid-cols-7 h-auto min-h-14 py-1">
         {TAB_CONFIG.map(({ id, label, icon: Icon }) => {
           const isActive = activeTab === id
           const activeColor = 'text-blue-600 dark:text-blue-400'

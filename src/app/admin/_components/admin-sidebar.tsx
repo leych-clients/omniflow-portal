@@ -8,6 +8,7 @@ import {
   BookOpen,
   Package,
   Newspaper,
+  Briefcase,
   BarChart3,
   Home,
   LogOut,
@@ -25,6 +26,7 @@ const TAB_CONFIG: { id: AdminTabId; label: string; icon: React.ComponentType<{ c
   { id: 'documents', label: 'Documents', icon: BookOpen },
   { id: 'software', label: 'Software', icon: Package },
   { id: 'news', label: 'News', icon: Newspaper },
+  { id: 'careers', label: 'Careers', icon: Briefcase },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ]
 
