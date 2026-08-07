@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       .from(BUCKET)
       .createSignedUploadUrl(path, { upsert: true });
 
-    if (signError || !signData?.token) {
+    if (signError || !signData?.token || !signData?.signedUrl) {
       console.error("Manuals presign error:", signError);
       return NextResponse.json(
         { error: "Failed to create upload URL" },
@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       bucket: BUCKET,
       path,
       token: signData.token,
+      signedUrl: signData.signedUrl,
     });
   } catch (error: unknown) {
     console.error("Manuals presign error:", error);
