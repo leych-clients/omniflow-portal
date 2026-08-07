@@ -1,11 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AdminAddModalLayout } from '@/components/admin/admin-add-modal-layout'
 import { FileDropzone } from '@/app/admin/software/add/_components/file-dropzone'
 import { ImageUploadCard } from '@/app/admin/software/add/_components/image-upload-card'
+import { fetchWithAdminAuth } from '@/lib/admin-fetch'
+import { supabase } from '@/lib/supabase'
+import { uploadFileViaPresign } from '@/lib/upload-file-direct'
 import { Upload, Loader2, XCircle } from 'lucide-react'
 
 const MAX_ZIP_BYTES = 1024 * 1024 * 1024
@@ -14,6 +18,20 @@ interface AddSoftwareModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
+}
+
+async function parseJsonResponse(res: Response): Promise<{ error?: string } & Record<string, unknown>> {
+  const text = await res.text()
+  if (!text) return {}
+  try {
+    return JSON.parse(text) as { error?: string } & Record<string, unknown>
+  } catch {
+    throw new Error(
+      res.ok
+        ? 'Server returned an unexpected response'
+        : `Upload failed (${res.status}). The file may be too large for the server path — please try again.`
+    )
+  }
 }
 
 export function AddSoftwareModal({ open, onOpenChange, onSuccess }: AddSoftwareModalProps) {
@@ -39,21 +57,40 @@ export function AddSoftwareModal({ open, onOpenChange, onSuccess }: AddSoftwareM
 
     setLoading(true)
     try {
-      const formData = new FormData()
-      formData.append('title', form.title.trim())
-      formData.append('description', form.description.trim() || '')
-      formData.append('image_url', form.imageUrl.trim() || '')
-      formData.append('file', zipFile)
+      const getHeaders = async (): Promise<Record<string, string>> => {
+        const { data: { session } } = await supabase.auth.getSession()
+        return session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : ({} as Record<string, string>)
+      }
 
-      const url = typeof window !== 'undefined' ? `${window.location.origin}/api/software` : '/api/software'
-      const res = await fetch(url, {
+      // Direct-to-storage upload (avoids Vercel/Next body size limits on multipart)
+      const { path, filename, size } = await uploadFileViaPresign(
+        '/api/software/upload-url',
+        getHeaders,
+        { filename: zipFile.name, fileSize: zipFile.size },
+        zipFile
+      )
+
+      const res = await fetchWithAdminAuth('/api/software', {
         method: 'POST',
-        body: formData,
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title.trim(),
+          description: form.description.trim() || null,
+          image_url: form.imageUrl.trim() || null,
+          filename,
+          storage_path: path,
+          size,
+        }),
       })
 
-      const data = await res.json()
+      const data = await parseJsonResponse(res)
       if (!res.ok) throw new Error(data.error || 'Failed to save software')
+
+      toast.success('Software added')
+      setForm({ title: '', description: '', imageUrl: '' })
+      setZipFile(null)
       onSuccess?.()
       handleClose()
     } catch (e) {
