@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { TagMultiSelect } from '@/components/ui/tag-multi-select'
 import { AdminAddModalLayout } from '@/components/admin/admin-add-modal-layout'
-import { supabase } from '@/lib/supabase'
 import { fetchWithAdminAuth } from '@/lib/admin-fetch'
 import { uploadFileViaPresign } from '@/lib/upload-file-direct'
 import { Upload, Loader2, XCircle } from 'lucide-react'
@@ -44,8 +43,6 @@ export function AddManualModal({ open, onOpenChange, onSuccess }: AddManualModal
   }, [open])
 
   const handleDeleteTagFromPool = async (tag: string) => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
     const res = await fetchWithAdminAuth('/api/manuals/tags/delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -72,14 +69,10 @@ export function AddManualModal({ open, onOpenChange, onSuccess }: AddManualModal
     setUploadPercent(50)
     setError('')
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Session expired. Please log in again.')
-
-      const getHeaders = async () => ({ Authorization: `Bearer ${session.access_token}` })
       const folder = form.tags[0] ? form.tags[0].replace(/[^a-zA-Z0-9_-]/g, '_') : 'uncategorized'
       const { path, filename, size } = await uploadFileViaPresign(
         '/api/manuals/upload-url',
-        getHeaders,
+        async () => ({}),
         { filename: file.name, folder, fileSize: file.size },
         file
       )
