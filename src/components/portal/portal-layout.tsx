@@ -25,15 +25,21 @@ import { useTheme } from 'next-themes'
 
 const LOCKED_FEATURE_IDS = ['ai-assistant', 'view-documents', 'software']
 
+const PUBLIC_REQUEST_QUOTE_URL = 'https://www.omniflow.com/request-a-quote'
+
 const navItems = [
   { id: 'ai-assistant', title: 'AI Assistant', icon: Bot, href: '/ai-assistant' },
   { id: 'training', title: 'Training', icon: GraduationCap, href: '/training' },
-  { id: 'submit-rfq', title: 'Submit RFQ', icon: FileText, href: 'https://form.typeform.com/to/daiU0VJA', external: true },
+  { id: 'submit-rfq', title: 'Request a Quote', icon: FileText, href: PUBLIC_REQUEST_QUOTE_URL },
   { id: 'support', title: 'Support', icon: Headphones, href: '/support' },
   { id: 'view-documents', title: 'Documents', icon: BookOpen, href: '/documents' },
   { id: 'software', title: 'Software', icon: Package, href: '/software' },
   { id: 'news', title: 'News', icon: Newspaper, href: '/news' },
 ]
+
+function isExternalHref(href: string) {
+  return href.startsWith('http://') || href.startsWith('https://')
+}
 
 function NavLink({
   item,
@@ -46,7 +52,8 @@ function NavLink({
 }) {
   const pathname = usePathname()
   const isDisabled = isLocked && LOCKED_FEATURE_IDS.includes(item.id)
-  const isActive = pathname === item.href
+  const external = isExternalHref(item.href)
+  const isActive = !external && pathname === item.href
   const Icon = item.icon
 
   const className = `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
@@ -65,25 +72,16 @@ function NavLink({
     </>
   )
 
-  if (item.external) {
+  if (isDisabled) {
+    return <span className={className}>{content}</span>
+  }
+
+  if (external) {
     return (
-      <a
-        href={item.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={className}
-        onClick={(e) => {
-          e.preventDefault()
-          window.open(item.href, '_blank', 'noopener,noreferrer')
-        }}
-      >
+      <a href={item.href} className={className} target="_blank" rel="noopener noreferrer">
         {content}
       </a>
     )
-  }
-
-  if (isDisabled) {
-    return <span className={className}>{content}</span>
   }
 
   return (
