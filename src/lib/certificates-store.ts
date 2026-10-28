@@ -93,31 +93,35 @@ function buildSeed(): Map<string, CertificateRecord> {
   return rows;
 }
 
-const demoRows: Map<string, CertificateRecord> = ((globalThis as { __certDemoStore?: Map<string, CertificateRecord> })
-  .__certDemoStore ??= buildSeed());
+// Seeding signs records, which needs the signing secret, so it must only run when demo mode is
+// actually used and never at module load (next build imports this module without demo mode).
+function demoRows(): Map<string, CertificateRecord> {
+  const g = globalThis as { __certDemoStore?: Map<string, CertificateRecord> };
+  return (g.__certDemoStore ??= buildSeed());
+}
 
 const demoStore: CertificateStore = {
   async getByCode(code) {
-    for (const r of demoRows.values()) if (r.verification_code === code) return r;
+    for (const r of demoRows().values()) if (r.verification_code === code) return r;
     return null;
   },
   async getByRegistrationId(registrationId) {
-    for (const r of demoRows.values()) if (r.registration_id === registrationId) return r;
+    for (const r of demoRows().values()) if (r.registration_id === registrationId) return r;
     return null;
   },
   async list() {
-    return [...demoRows.values()].sort((a, b) => b.issued_at.localeCompare(a.issued_at));
+    return [...demoRows().values()].sort((a, b) => b.issued_at.localeCompare(a.issued_at));
   },
   async insert(row) {
-    for (const r of demoRows.values()) if (r.verification_code === row.verification_code) throw new DuplicateCodeError();
-    demoRows.set(row.id, row);
+    for (const r of demoRows().values()) if (r.verification_code === row.verification_code) throw new DuplicateCodeError();
+    demoRows().set(row.id, row);
     return row;
   },
   async revoke(id, reason) {
-    const r = demoRows.get(id);
+    const r = demoRows().get(id);
     if (!r) return null;
     const next: CertificateRecord = { ...r, status: "revoked", revoked_at: new Date().toISOString(), revoked_reason: reason };
-    demoRows.set(id, next);
+    demoRows().set(id, next);
     return next;
   },
 };
