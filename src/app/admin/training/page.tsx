@@ -12,7 +12,7 @@ import { DataTable } from '@/components/admin/data-table'
 import { fetchWithAdminAuth } from '@/lib/admin-fetch'
 import { AdminPageDashboard } from '@/components/admin/admin-page-dashboard'
 import { getTrainingCoursesColumns } from './_components/training-courses-columns'
-import { Plus, GraduationCap, XCircle, CalendarRange } from 'lucide-react'
+import { Plus, GraduationCap, XCircle, CalendarRange, ShieldCheck } from 'lucide-react'
 import { type Course } from '../_components/admin-types'
 import { stripHtml } from '@/lib/strip-html'
 
@@ -132,6 +132,12 @@ function AdminTrainingPageInner() {
             <Link href="/admin/training/sessions">
               <CalendarRange className="h-4 w-4" />
               Scheduled classes
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="h-11 gap-2 rounded-xl">
+            <Link href="/admin/training/certificates">
+              <ShieldCheck className="h-4 w-4" />
+              Certificates
             </Link>
           </Button>
           <Button
