@@ -2,10 +2,10 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Calendar, List, LayoutGrid, MessageSquare } from 'lucide-react'
+import { Calendar, Cpu, List, LayoutGrid, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type TrainingHubTab = 'courses' | 'schedule'
+type TrainingHubTab = 'courses' | 'schedule' | 'simulator'
 
 interface TrainingHubNavProps {
   activeTab: TrainingHubTab
@@ -61,6 +61,18 @@ export function TrainingHubNav({ activeTab }: TrainingHubNavProps) {
         >
           <Calendar className="h-4 w-4 shrink-0 opacity-70" />
           Schedule
+        </Link>
+        <Link
+          href="/training/simulator"
+          className={cn(
+            'inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors sm:flex-initial',
+            activeTab === 'simulator'
+              ? 'bg-white text-slate-900 shadow-sm dark:bg-white/[0.12] dark:text-zinc-100'
+              : 'text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-100'
+          )}
+        >
+          <Cpu className="h-4 w-4 shrink-0 opacity-70" />
+          OMNI 7000 Simulator
         </Link>
       </div>
     </div>
