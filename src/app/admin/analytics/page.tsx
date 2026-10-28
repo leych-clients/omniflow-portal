@@ -31,6 +31,12 @@ interface AnalyticsEvent {
   created_at: string
 }
 
+interface AiStats {
+  total: number
+  last_30_days: number
+  failed: number
+}
+
 const EVENT_LABELS: Record<string, string> = {
   login: 'Login',
   logout: 'Logout',
@@ -38,6 +44,41 @@ const EVENT_LABELS: Record<string, string> = {
   software_download: 'Software',
   user_unlock: 'User unlocked',
   user_lock: 'User locked',
+  ai_interaction: 'AI interaction',
+}
+
+function EventResource({ evt }: { evt: AnalyticsEvent }) {
+  if (evt.event_type === 'login' || evt.event_type === 'logout') {
+    return (
+      <span className="text-xs" title={JSON.stringify(evt.metadata)}>
+        {(evt.metadata as { ip?: string })?.ip || '—'}
+      </span>
+    )
+  }
+
+  if (evt.event_type === 'ai_interaction') {
+    const { question, status, duration_ms } = evt.metadata as {
+      question?: string
+      status?: string
+      duration_ms?: number
+    }
+    const failed = status === 'error'
+    return (
+      <div className="space-y-1 max-w-md">
+        <p className="text-sm line-clamp-2 break-words" title={question}>
+          {question || '—'}
+        </p>
+        <p className="text-xs text-slate-500 dark:text-zinc-400">
+          <span className={failed ? 'font-medium text-rose-600 dark:text-rose-400' : 'font-medium text-emerald-600 dark:text-emerald-400'}>
+            {failed ? 'Failed' : 'Answered'}
+          </span>
+          {typeof duration_ms === 'number' && ` · ${(duration_ms / 1000).toFixed(1)}s`}
+        </p>
+      </div>
+    )
+  }
+
+  return <>{evt.resource_label}</>
 }
 
 export default function AdminAnalyticsPage() {
@@ -45,6 +86,7 @@ export default function AdminAnalyticsPage() {
   const [analyticsLoading, setAnalyticsLoading] = useState(true)
   const [analyticsError, setAnalyticsError] = useState('')
   const [analyticsEventTypeFilter, setAnalyticsEventTypeFilter] = useState('')
+  const [aiStats, setAiStats] = useState<AiStats>({ total: 0, last_30_days: 0, failed: 0 })
 
   const fetchAnalytics = useCallback(async (filterOverride?: string) => {
     setAnalyticsLoading(true)
@@ -57,6 +99,7 @@ export default function AdminAnalyticsPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to load analytics')
       setAnalyticsEvents(data.events ?? [])
+      if (data.ai_stats) setAiStats(data.ai_stats)
     } catch (e: unknown) {
       setAnalyticsError(e instanceof Error ? e.message : 'Failed to load analytics')
     } finally {
@@ -78,12 +121,15 @@ export default function AdminAnalyticsPage() {
     { label: 'Events', value: analyticsEvents.length },
     { label: 'Unique users', value: uniqueUsers },
     { label: 'Event types', value: uniqueEventTypes },
+    { label: 'AI interactions', value: aiStats.total },
+    { label: 'AI (30 days)', value: aiStats.last_30_days },
+    { label: 'AI failures', value: aiStats.failed },
   ]
 
   return (
     <div className="space-y-6 pb-20 md:pb-0">
       {analyticsLoading ? (
-        <DashboardSkeleton statCount={3} />
+        <DashboardSkeleton statCount={6} />
       ) : !analyticsError ? (
         <AdminPageDashboard
           title="Analytics"
@@ -123,6 +169,7 @@ export default function AdminAnalyticsPage() {
                 <DropdownMenuRadioItem value="logout">Logout</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="document_download">Document download</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="software_download">Software download</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="ai_interaction">AI interaction</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -146,7 +193,7 @@ export default function AdminAnalyticsPage() {
           </div>
           <p className="text-base font-semibold text-slate-700 dark:text-zinc-200 mb-2">No activity yet</p>
           <p className="text-sm text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">
-            Document downloads, logins, and other events will appear here.
+            Document downloads, logins, AI interactions, and other events will appear here.
           </p>
         </div>
       ) : (
@@ -179,15 +226,9 @@ export default function AdminAnalyticsPage() {
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-500">Resource</p>
-                  <p className="text-sm text-slate-700 dark:text-zinc-300 mt-0.5 break-words">
-                    {evt.event_type === 'login' || evt.event_type === 'logout' ? (
-                      <span className="text-xs" title={JSON.stringify(evt.metadata)}>
-                        {(evt.metadata as { ip?: string })?.ip || '—'}
-                      </span>
-                    ) : (
-                      evt.resource_label
-                    )}
-                  </p>
+                  <div className="text-sm text-slate-700 dark:text-zinc-300 mt-0.5 break-words">
+                    <EventResource evt={evt} />
+                  </div>
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-500">When</p>
@@ -227,13 +268,7 @@ export default function AdminAnalyticsPage() {
                       </Badge>
                     </td>
                     <td className="py-4 px-4 text-slate-700 dark:text-zinc-300">
-                      {evt.event_type === 'login' || evt.event_type === 'logout' ? (
-                        <span className="text-xs" title={JSON.stringify(evt.metadata)}>
-                          {(evt.metadata as { ip?: string })?.ip || '—'}
-                        </span>
-                      ) : (
-                        evt.resource_label
-                      )}
+                      <EventResource evt={evt} />
                     </td>
                     <td className="py-4 px-4 text-slate-500 dark:text-zinc-400 text-xs">{formatDate(evt.created_at)}</td>
                   </tr>

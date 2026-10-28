@@ -5,6 +5,7 @@ import { verifyAuth } from "@/lib/verify-auth";
 import { getRequestMetadata } from "@/lib/request-metadata";
 
 const DEFAULT_LIMIT = 100;
+const AI_STATS_WINDOW_DAYS = 30;
 const ALLOWED_EVENT_TYPES = ["login", "logout"] as const;
 
 export async function GET(req: NextRequest) {
@@ -86,9 +87,27 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    // AI usage totals are counted in the database so they're accurate beyond the page limit.
+    const aiEvents = () =>
+      supabaseAdmin
+        .from("activity_events")
+        .select("id", { count: "exact", head: true })
+        .eq("event_type", "ai_interaction");
+    const since = new Date(Date.now() - AI_STATS_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const [aiTotal, aiRecent, aiFailed] = await Promise.all([
+      aiEvents(),
+      aiEvents().gte("created_at", since),
+      aiEvents().eq("metadata->>status", "error"),
+    ]);
+
     return NextResponse.json({
       events: rows,
       total: count ?? rows.length,
+      ai_stats: {
+        total: aiTotal.count ?? 0,
+        last_30_days: aiRecent.count ?? 0,
+        failed: aiFailed.count ?? 0,
+      },
     });
   } catch (error: unknown) {
     console.error("Analytics error:", error);

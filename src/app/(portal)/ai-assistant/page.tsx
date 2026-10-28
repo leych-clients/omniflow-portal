@@ -8,7 +8,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAuthStore } from '@/store/auth-store'
-import { chatbaseService, ChatbaseMessage } from '@/lib/chatbase'
 import { 
   Send, 
   Bot, 
@@ -55,7 +54,6 @@ export default function AIAssistantPage() {
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showQuickReplies, setShowQuickReplies] = useState(true)
-  const [chatId, setChatId] = useState<string | undefined>()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const quickReplies: QuickReply[] = [
@@ -102,11 +100,19 @@ export default function AIAssistantPage() {
     setShowQuickReplies(false)
 
     try {
-      const response = await chatbaseService.sendMessage(inputText, chatId)
-      
+      const res = await fetch('/api/ai-assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage.text }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { text?: string; error?: string }
+      if (!res.ok || !data.text) {
+        throw new Error(data.error || 'Failed to get a response')
+      }
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: cleanMarkdown(response.text),
+        text: cleanMarkdown(data.text),
         isUser: false,
         timestamp: new Date(),
       }
@@ -152,7 +158,6 @@ export default function AIAssistantPage() {
       },    
     ])
     setShowQuickReplies(true)
-    setChatId(undefined)
   }
 
   if (user?.locked === true) {

@@ -1,82 +1,66 @@
+/**
+ * Server-only Chatbase client. Only import this from API routes / server code.
+ * The browser talks to our own `/api/ai-assistant` route, never to Chatbase directly.
+ */
 const CHATBASE_API_URL = "https://www.chatbase.co/api/v1";
-const CHATBASE_SECRET_KEY = process.env.NEXT_PUBLIC_CHATBASE_API_KEY;
-const CHATBASE_BOT_ID = process.env.NEXT_PUBLIC_CHATBASE_BOT_ID;
+const REQUEST_TIMEOUT_MS = 55_000;
 
-export interface ChatbaseMessage {
-  role: "user" | "assistant";
-  content: string;
-  timestamp?: string;
-}
+export class ChatbaseError extends Error {
+  /** HTTP status returned by Chatbase, or 0 if the request never completed. */
+  readonly status: number;
 
-export interface ChatbaseResponse {
-  text: string;
-  sources?: Array<{
-    title: string;
-    url: string;
-  }>;
-}
-
-class ChatbaseService {
-  private apiKey: string;
-  private baseUrl: string;
-
-  constructor(apiKey: string = CHATBASE_SECRET_KEY!) {
-    this.apiKey = apiKey;
-    this.baseUrl = CHATBASE_API_URL;
-  }
-
-  async sendMessage(
-    message: string,
-    chatId?: string
-  ): Promise<ChatbaseResponse> {
-    try {
-      const response = await fetch(`${this.baseUrl}/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: "user",
-              content: message,
-            },
-          ],
-          chatId: chatId || this.generateChatId(),
-          stream: false,
-          chatbotId: CHATBASE_BOT_ID,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Chatbase API error: ${response.status} - ${errorText}`);
-        throw new Error(`Chatbase API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error("Chatbase API error:", error);
-      throw error;
-    }
-  }
-
-  private generateChatId(): string {
-    return `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  // Get quick reply suggestions based on context
-  getQuickReplies(): string[] {
-    return [
-      "What products do you offer?",
-      "How can I get support?",
-      "Tell me about your services",
-      "What are your business hours?",
-      "How do I place an order?",
-    ];
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ChatbaseError";
+    this.status = status;
   }
 }
 
-export const chatbaseService = new ChatbaseService();
+function getConfig(): { apiKey: string; botId: string } {
+  // Prefer private server-side variables; fall back to the legacy NEXT_PUBLIC_ names
+  // so existing deployments keep working until the env vars are renamed.
+  const apiKey = process.env.CHATBASE_API_KEY ?? process.env.NEXT_PUBLIC_CHATBASE_API_KEY;
+  const botId = process.env.CHATBASE_BOT_ID ?? process.env.NEXT_PUBLIC_CHATBASE_BOT_ID;
+
+  if (!apiKey || !botId) {
+    throw new ChatbaseError("Chatbase is not configured (missing API key or bot ID)", 0);
+  }
+  return { apiKey, botId };
+}
+
+export async function askChatbase(message: string): Promise<{ text: string }> {
+  const { apiKey, botId } = getConfig();
+
+  let response: Response;
+  try {
+    response = await fetch(`${CHATBASE_API_URL}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: message }],
+        chatbotId: botId,
+        stream: false,
+      }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      cache: "no-store",
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "request failed";
+    throw new ChatbaseError(`Chatbase request failed: ${reason}`, 0);
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    throw new ChatbaseError(`Chatbase API error ${response.status}: ${errorText}`, response.status);
+  }
+
+  const data = (await response.json().catch(() => null)) as { text?: unknown } | null;
+  if (!data || typeof data.text !== "string" || !data.text.trim()) {
+    throw new ChatbaseError("Chatbase returned an empty response", response.status);
+  }
+
+  return { text: data.text };
+}
