@@ -6,7 +6,7 @@ import { useAuthStore } from "@/store/auth-store";
 import type { User } from "@/types";
 import { useCallback, useEffect } from "react";
 
-const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password", "/auth", "/set-password", "/logout"];
+const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password", "/auth", "/set-password", "/logout", "/verify", "/demo"];
 const isProtectedPath = (pathname: string) =>
   !PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
