@@ -99,6 +99,8 @@ export type Action =
   | { type: 'key'; key: KeyId }
   | { type: 'tick'; now: number }
   | { type: 'reset' }
+  /** Used by the course to put the device in a known starting state for a step. */
+  | { type: 'patch'; fn: (s: SimState) => SimState }
 
 export interface Row {
   label: string
@@ -606,6 +608,8 @@ export function reduce(s: SimState, a: Action): SimState {
       return { ...s, tick: s.tick + 1, clock: a.now }
     case 'reset':
       return initialState()
+    case 'patch':
+      return a.fn(s)
     case 'key':
       return pressKey(s, a.key)
   }

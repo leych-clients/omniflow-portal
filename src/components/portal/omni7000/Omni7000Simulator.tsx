@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
-import { Keyboard, MousePointerClick, RotateCcw, Info } from 'lucide-react'
+import { GraduationCap, Keyboard, MousePointerClick, RotateCcw, Info, Gamepad2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -20,8 +20,10 @@ import {
   initialState,
   reduce,
   type KeyId,
+  type SimState,
   type View,
 } from './sim'
+import { CoursePanel } from './CoursePanel'
 
 const MAX_WIDTH = 540
 const ROW_H = 20
@@ -217,6 +219,7 @@ function Hotspot({
   return (
     <button
       type="button"
+      data-hotspot
       aria-label={def.kbd ? `${def.label} (${def.kbd})` : def.label}
       title={def.kbd ? `${def.label}  [${def.kbd}]` : def.label}
       onClick={() => onPress(def.id)}
@@ -258,6 +261,9 @@ export function Omni7000Simulator() {
   const [state, dispatch] = useReducer(reduce, undefined, initialState)
   const [pressed, setPressed] = useState<KeyId | null>(null)
   const [log, setLog] = useState<string[]>([])
+  /** Every key pressed so far. The course uses it to grade "did you use key X". */
+  const [keyHistory, setKeyHistory] = useState<KeyId[]>([])
+  const [tab, setTab] = useState<'course' | 'free'>('course')
   const [showHints, setShowHints] = useState(false)
   const [scale, setScale] = useState(1)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -286,7 +292,13 @@ export function Omni7000Simulator() {
   const press = useCallback((key: KeyId) => {
     dispatch({ type: 'key', key })
     setLog((l) => [KEY_LABEL[key] ?? key, ...l].slice(0, 12))
+    setKeyHistory((h) => [...h, key])
   }, [])
+
+  const patch = useCallback(
+    (fn: (s: SimState) => SimState) => dispatch({ type: 'patch', fn }),
+    [],
+  )
 
   const flash = useCallback((key: KeyId) => {
     setPressed(key)
@@ -300,6 +312,9 @@ export function Omni7000Simulator() {
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const t = e.target as HTMLElement | null
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return
+      // Space/Enter on a normal page button (e.g. "Check answer") must activate that button,
+      // not press a key on the device. Device hotspots are tagged with data-hotspot.
+      if (t?.tagName === 'BUTTON' && !t.hasAttribute('data-hotspot') && (e.key === ' ' || e.key === 'Enter')) return
       const key = KEYBOARD_MAP[e.key]
       if (!key) return
       e.preventDefault()
@@ -379,46 +394,85 @@ export function Omni7000Simulator() {
           </div>
         </div>
         <style>{`@keyframes omni7000-pulse{0%,100%{opacity:1}50%{opacity:.55}}`}</style>
+
+        <div className="mt-4 flex justify-center">
+          <Button
+            type="button"
+            variant={showHints ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setShowHints((v) => !v)}
+            className={showHints ? 'bg-blue-600 text-white hover:bg-blue-700' : undefined}
+          >
+            <MousePointerClick className="mr-2 h-4 w-4" />
+            {showHints ? 'Hide key outlines' : 'Show key outlines'}
+          </Button>
+        </div>
       </div>
 
       {/* Side panel */}
-      <div className="space-y-5">
+      <div className="min-w-0 space-y-5">
+        <div
+          role="tablist"
+          aria-label="Simulator mode"
+          className="flex gap-1 rounded-xl border border-slate-200 bg-slate-100/80 p-1 dark:border-white/[0.08] dark:bg-white/[0.05]"
+        >
+          {(
+            [
+              { id: 'course', label: 'Guided course', icon: GraduationCap },
+              { id: 'free', label: 'Free play', icon: Gamepad2 },
+            ] as const
+          ).map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                'inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors',
+                tab === t.id
+                  ? 'bg-white text-slate-900 shadow-sm dark:bg-white/[0.12] dark:text-zinc-100'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-100',
+              )}
+            >
+              <t.icon className="h-4 w-4 shrink-0 opacity-70" />
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Kept mounted (just hidden) so course progress survives switching tabs. */}
+        <div className={cn(tab !== 'course' && 'hidden')}>
+          <CoursePanel state={state} keyHistory={keyHistory} onPatch={patch} />
+        </div>
+
+        <div className={cn('space-y-5', tab !== 'free' && 'hidden')}>
         <Card className="border-0 shadow-sm dark:border dark:border-white/[0.08]">
           <CardContent className="space-y-4 p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-zinc-100">
-                  OMNI 7000 front panel
+                  Free play
                 </h2>
                 <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
                   Click the keys on the device, or use your keyboard. Currently showing:{' '}
                   <span className="font-medium text-slate-900 dark:text-zinc-100">{view.title}</span>
                 </p>
               </div>
-              <div className="flex shrink-0 gap-2">
-                <Button
-                  type="button"
-                  variant={showHints ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setShowHints((v) => !v)}
-                  className={showHints ? 'bg-blue-600 text-white hover:bg-blue-700' : undefined}
-                >
-                  <MousePointerClick className="mr-2 h-4 w-4" />
-                  Show keys
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    dispatch({ type: 'reset' })
-                    setLog([])
-                  }}
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Reset
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => {
+                  dispatch({ type: 'reset' })
+                  setLog([])
+                  setKeyHistory([])
+                }}
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Reset device
+              </Button>
             </div>
 
             <div>
@@ -471,6 +525,7 @@ export function Omni7000Simulator() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   )
