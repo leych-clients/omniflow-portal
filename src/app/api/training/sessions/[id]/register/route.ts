@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const { data: gate, error: gateErr } = await supabaseAdmin
       .from("training_sessions")
-      .select("status, registration_closes_at")
+      .select("status, registration_closes_at, waitlist_enabled")
       .eq("id", sessionId)
       .single();
     if (gateErr || !gate) {
@@ -42,7 +42,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (
       trainingSessionCannotSelfServeSignup(
         gate.status as string,
-        gate.registration_closes_at as string | null
+        gate.registration_closes_at as string | null,
+        gate.waitlist_enabled as boolean | null
       )
     ) {
       return NextResponse.json(

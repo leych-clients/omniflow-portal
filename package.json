@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start -p 3009",
     "start:prod": "next build && next start -p 3009",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test --experimental-strip-types src/lib/training-session-public.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

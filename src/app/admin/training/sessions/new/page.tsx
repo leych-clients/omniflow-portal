@@ -269,14 +269,20 @@ function NewTrainingSessionPageInner() {
             className="mt-1"
           />
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={form.waitlist_enabled}
-            onChange={(e) => setForm((f) => ({ ...f, waitlist_enabled: e.target.checked }))}
-          />
-          Waitlist enabled
-        </label>
+        <div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.waitlist_enabled}
+              onChange={(e) => setForm((f) => ({ ...f, waitlist_enabled: e.target.checked }))}
+            />
+            Waitlist enabled
+          </label>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            The waitlist allows signup when the class is Open or Full. It has no effect when the class is Closed or
+            Cancelled.
+          </p>
+        </div>
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="outline" asChild>
             <Link href="/admin/training/sessions">Cancel</Link>

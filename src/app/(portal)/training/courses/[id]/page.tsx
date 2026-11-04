@@ -15,8 +15,10 @@ import {
   type TrainingSessionDay,
 } from '@/lib/format-training-session-schedule'
 import {
-  isTrainingSessionSignupBlockedByStatus,
   publicTrainingSessionStatusLabel,
+  shouldShowTrainingSessionStatusBadge,
+  trainingSessionCannotSelfServeSignup,
+  trainingSessionOffersWaitlist,
 } from '@/lib/training-session-public'
 
 interface CourseDetail {
@@ -49,6 +51,9 @@ interface SessionRow {
   timezone: string
   location: string
   status: string
+  waitlist_enabled: boolean
+  spots_remaining: number
+  registration_closes_at: string | null
   days: TrainingSessionDay[]
 }
 
@@ -243,14 +248,19 @@ export default function TrainingCourseDetailPage() {
         ) : (
           <div className="space-y-3">
             {sessions.map((s) => {
-              const signupBlocked = isTrainingSessionSignupBlockedByStatus(s.status)
+              const signupBlocked = trainingSessionCannotSelfServeSignup(
+                s.status,
+                s.registration_closes_at,
+                s.waitlist_enabled
+              )
+              const offersWaitlist = !signupBlocked && trainingSessionOffersWaitlist(s)
               return (
               <Card key={s.id} className="border border-slate-200 dark:border-white/[0.08] shadow-sm">
                 <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold text-slate-900 dark:text-zinc-100">{s.title}</h3>
-                      {signupBlocked && (
+                      {shouldShowTrainingSessionStatusBadge(s.status) && (
                         <Badge variant="outline" className="font-normal capitalize shrink-0">
                           {publicTrainingSessionStatusLabel(s.status)}
                         </Badge>
@@ -269,7 +279,19 @@ export default function TrainingCourseDetailPage() {
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-                    {signupBlocked ? (
+                    {offersWaitlist ? (
+                      <>
+                        <Button asChild variant="secondary" className="w-full sm:w-auto">
+                          <Link href={`/training/sessions/${s.id}/signup?waitlist=1`}>Full - join waitlist</Link>
+                        </Button>
+                        <Link
+                          href={`/training/sessions/${s.id}`}
+                          className="text-center text-sm font-medium text-blue-600 hover:underline dark:text-blue-400 sm:text-right"
+                        >
+                          View class details
+                        </Link>
+                      </>
+                    ) : signupBlocked ? (
                       <>
                         <Button type="button" disabled variant="secondary" className="w-full sm:w-auto">
                           Signup unavailable

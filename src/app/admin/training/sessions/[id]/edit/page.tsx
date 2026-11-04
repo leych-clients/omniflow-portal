@@ -462,14 +462,20 @@ export default function EditTrainingSessionPage() {
             className="mt-1"
           />
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={form.waitlist_enabled}
-            onChange={(e) => setForm((f) => ({ ...f, waitlist_enabled: e.target.checked }))}
-          />
-          Waitlist enabled
-        </label>
+        <div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.waitlist_enabled}
+              onChange={(e) => setForm((f) => ({ ...f, waitlist_enabled: e.target.checked }))}
+            />
+            Waitlist enabled
+          </label>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            The waitlist allows signup when the class is Open or Full. It has no effect when the class is Closed or
+            Cancelled.
+          </p>
+        </div>
         <div className="flex justify-end">
           <Button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save changes'}

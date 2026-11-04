@@ -98,7 +98,8 @@ export function TrainingSessionSignupClient() {
     }
     const closed = trainingSessionCannotSelfServeSignup(
       session.status,
-      session.registration_closes_at
+      session.registration_closes_at,
+      session.waitlist_enabled
     )
     if (closed) return
 
@@ -163,7 +164,8 @@ export function TrainingSessionSignupClient() {
 
   const signupClosed = trainingSessionCannotSelfServeSignup(
     session.status,
-    session.registration_closes_at
+    session.registration_closes_at,
+    session.waitlist_enabled
   )
 
   if (session.my_registration) {
@@ -188,7 +190,7 @@ export function TrainingSessionSignupClient() {
             <CardTitle>Signup not available</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-slate-600 dark:text-zinc-400">
-            {isTrainingSessionSignupBlockedByStatus(session.status)
+            {isTrainingSessionSignupBlockedByStatus(session.status, session.waitlist_enabled)
               ? `This class is ${publicTrainingSessionStatusLabel(session.status).toLowerCase()}. Signup is not available.`
               : 'Signup for this class has closed.'}
             <div className="pt-4">
