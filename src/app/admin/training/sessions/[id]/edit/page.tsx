@@ -16,6 +16,12 @@ import {
   TrainingSessionDaysEditor,
   type DraftDay,
 } from '@/components/admin/training-session-days-editor'
+import {
+  RosterAccountDetails,
+  RosterAttendeeDetails,
+  RosterStatusBadge,
+} from '@/components/admin/training-roster-cells'
+import { compareAttendeeToAccount, hasSignupDetails, rosterStatusInfo } from '@/lib/training-roster-attendee'
 
 function toLocalInput(iso: string | null | undefined): string {
   if (!iso) return ''
@@ -309,26 +315,27 @@ export default function EditTrainingSessionPage() {
       [
         'status',
         'attendance',
-        'email',
-        'name',
+        'account_email',
+        'account_name',
         'waitlist_position',
         'certificate_company',
         'work_title',
-        'first_name',
-        'last_name',
+        'attendee_first_name',
+        'attendee_last_name',
         'company_address',
         'city',
         'state_province',
         'postal_code',
         'country',
-        'contact_email',
-        'contact_phone',
+        'attendee_email',
+        'attendee_phone',
         'food_restrictions',
+        'attendee_differs_from_account',
         'created_at',
       ].join(','),
       ...regs.map((r) =>
         [
-          r.status,
+          rosterStatusInfo(r.status, r.waitlist_position).label,
           rosterAttendance(r),
           esc(r.user.email),
           esc(r.user.name),
@@ -345,6 +352,7 @@ export default function EditTrainingSessionPage() {
           esc(r.contact_email),
           esc(r.contact_phone),
           esc(r.food_restrictions),
+          hasSignupDetails(r) ? (compareAttendeeToAccount(r, r.user).differs ? 'yes' : 'no') : '',
           r.created_at,
         ].join(',')
       ),
@@ -546,19 +554,10 @@ export default function EditTrainingSessionPage() {
                   className="rounded-lg border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/50 dark:bg-white/[0.03] p-4 space-y-2 text-sm"
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-zinc-900 dark:text-zinc-100 capitalize">{r.status}</span>
-                    {r.waitlist_position != null && (
-                      <span className="text-xs text-zinc-500">#{r.waitlist_position}</span>
-                    )}
+                    <RosterStatusBadge status={r.status} waitlistPosition={r.waitlist_position} />
                   </div>
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Name</p>
-                    <p className="text-zinc-800 dark:text-zinc-200 mt-0.5">{r.user.name || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Email</p>
-                    <p className="text-zinc-700 dark:text-zinc-300 mt-0.5 break-all">{r.user.email}</p>
-                  </div>
+                  <RosterAttendeeDetails registration={r} account={r.user} />
+                  <RosterAccountDetails account={r.user} />
                   <div>
                     <label htmlFor={`attendance-${r.id}`} className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
                       Attendance
@@ -590,19 +589,18 @@ export default function EditTrainingSessionPage() {
                 <tr className="border-b border-zinc-200 dark:border-white/[0.06] text-left text-zinc-600 dark:text-zinc-400">
                   <th className="py-2 pr-2">Status</th>
                   <th className="py-2 pr-3 whitespace-nowrap">Attendance</th>
-                  <th className="py-2 pr-2">Name</th>
-                  <th className="py-2 pr-2">Email</th>
+                  <th className="py-2 pr-3">Attendee</th>
+                  <th className="py-2 pr-2">Account</th>
                   <th className="py-2 w-20" />
                 </tr>
               </thead>
               <tbody>
                 {regs.map((r) => (
                   <tr key={r.id} className="border-b border-zinc-100 dark:border-white/[0.04]">
-                    <td className="py-2 pr-2 align-middle">
-                      {r.status}
-                      {r.waitlist_position != null && <span className="text-xs text-zinc-500 ml-1">#{r.waitlist_position}</span>}
+                    <td className="py-2 pr-2 align-top">
+                      <RosterStatusBadge status={r.status} waitlistPosition={r.waitlist_position} />
                     </td>
-                    <td className="py-2 pr-3 align-middle">
+                    <td className="py-2 pr-3 align-top">
                       <select
                         className="h-8 max-w-[10.5rem] rounded-lg border border-zinc-200 dark:border-white/[0.12] bg-white dark:bg-[#141414] px-2 text-xs"
                         value={rosterAttendance(r)}
@@ -616,8 +614,12 @@ export default function EditTrainingSessionPage() {
                         <option value="confirmed">Confirmed</option>
                       </select>
                     </td>
-                    <td className="py-2 pr-2 align-middle">{r.user.name || '—'}</td>
-                    <td className="py-2 pr-2 align-middle break-all">{r.user.email}</td>
+                    <td className="py-2 pr-3 align-top">
+                      <RosterAttendeeDetails registration={r} account={r.user} showLabel={false} />
+                    </td>
+                    <td className="py-2 pr-2 align-top">
+                      <RosterAccountDetails account={r.user} showLabel={false} />
+                    </td>
                     <td className="py-2 text-right align-middle">
                       <Button type="button" variant="ghost" size="icon" className="text-rose-600" onClick={() => removeReg(r.id)}>
                         <Trash2 className="h-4 w-4" />
