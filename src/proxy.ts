@@ -11,6 +11,8 @@ const PUBLIC_PATHS = [
   "/auth",
   "/set-password",
   "/logout",
+  "/verify",
+  "/demo",
 ];
 const isPublic = (pathname: string) =>
   PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
