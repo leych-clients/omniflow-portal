@@ -15,6 +15,8 @@ import { TrainingScheduleDisplay } from '@/components/portal/training-schedule-d
 import type { TrainingSessionDay } from '@/lib/format-training-session-schedule'
 import {
   isTrainingSessionSignupBlockedByStatus,
+  shouldShowTrainingSessionStatusBadge,
+  trainingSessionOffersWaitlist,
   publicTrainingSessionStatusLabel,
   trainingSessionCannotSelfServeSignup,
 } from '@/lib/training-session-public'
@@ -122,8 +124,10 @@ export default function TrainingSessionDetailPage() {
   const mine = session.my_registration
   const signupClosed = trainingSessionCannotSelfServeSignup(
     session.status,
-    session.registration_closes_at
+    session.registration_closes_at,
+    session.waitlist_enabled
   )
+  const offersWaitlist = trainingSessionOffersWaitlist(session)
 
   return (
     <div className="max-w-3xl mx-auto w-full py-6 space-y-6">
@@ -139,7 +143,7 @@ export default function TrainingSessionDetailPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-2 min-w-0">
               <CardTitle className="text-2xl">{session.title}</CardTitle>
-              {isTrainingSessionSignupBlockedByStatus(session.status) && (
+              {shouldShowTrainingSessionStatusBadge(session.status) && (
                 <Badge variant="outline" className="font-normal capitalize">
                   {publicTrainingSessionStatusLabel(session.status)}
                 </Badge>
@@ -179,14 +183,14 @@ export default function TrainingSessionDetailPage() {
                 <Link href={`/training/sessions/${id}/signup`}>Sign up</Link>
               </Button>
             )}
-            {!mine && !signupClosed && session.spots_remaining <= 0 && session.waitlist_enabled && (
+            {!mine && !signupClosed && offersWaitlist && (
               <Button asChild variant="secondary">
                 <Link href={`/training/sessions/${id}/signup?waitlist=1`}>Join waitlist</Link>
               </Button>
             )}
             {!mine && signupClosed && (
               <p className="text-sm text-slate-600 dark:text-zinc-400">
-                {isTrainingSessionSignupBlockedByStatus(session.status)
+                {isTrainingSessionSignupBlockedByStatus(session.status, session.waitlist_enabled)
                   ? `This class is ${publicTrainingSessionStatusLabel(session.status).toLowerCase()}. Signup is not available.`
                   : 'Signup for this class has closed.'}
               </p>
@@ -197,7 +201,7 @@ export default function TrainingSessionDetailPage() {
               </Button>
             )}
           </div>
-          {!mine && !signupClosed && (session.spots_remaining > 0 || (session.spots_remaining <= 0 && session.waitlist_enabled)) && (
+          {!mine && !signupClosed && (session.spots_remaining > 0 || offersWaitlist) && (
             <p className="text-xs text-slate-500 dark:text-zinc-500">
               Signing up reserves your spot; payment is handled offline (for example by purchase order).
             </p>
